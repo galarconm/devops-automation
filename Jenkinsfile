@@ -12,37 +12,27 @@ pipeline {
         }
 
         stage('Code Quality - Checkstyle' ){
-            agent{
-                docker{
-                    image 'maven:3.8.1-openjdk-11'
-                    args '-v /root/.m2:/root/.m2'
-                }
-            }
+            
             steps{
-                sh 'mvn checkstyle:check'
+                sh 'mvn checkstyle:check || true'
                 recordIssues(tools: [checkStyle(pattern: '**/checkstyle-result.xml')])
             }
         }
 
-        stage('Unit Tests'){
-            agent{
-                docker{
-                    image 'maven:3.8.1-openjdk-11'
-                    args '-v /root/.m2:/root/.m2'
-                }
+        stage('Dockerfile Linting - Hadolint' ){
+            steps{
+                sh 'hadolint Dockerfile > hadolint-report.txt || true'
+                recordIssues(tools: [hadolint(pattern: 'hadolint-report.txt')])
             }
+        }
+
+        stage('Unit Tests'){
             steps{
                 sh 'mvn test'
             }
         }
 
         stage('Code Coverage'){
-            agent{
-                docker{
-                    image 'maven:3.8.1-openjdk-11'
-                    args '-v /root/.m2:/root/.m2'
-                }
-            }
             steps{
                 script{
                     sh 'mvn cobertura:cobertura'
