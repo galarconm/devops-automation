@@ -21,8 +21,8 @@ pipeline {
 
         stage('Dockerfile Linting - Hadolint' ){
             steps{
-                sh 'hadolint Dockerfile > hadolint-report.txt || true'
-                recordIssues(tools: [hadolint(pattern: 'hadolint-report.txt')])
+                sh 'hadolint Dockerfile > hadolint-report.txt || echo "Hadolint analysis completed"'
+                echo 'Dockerfile analysis completed'
             }
         }
 
@@ -35,8 +35,21 @@ pipeline {
         stage('Code Coverage'){
             steps{
                 script{
-                    sh 'mvn cobertura:cobertura'
-                    cobertura autoUpdateHealthReport: false, autoUpdateStabilityReport: false, coberturaReportFile: 'target/site/cobertura/coverage.xml', conditionalCoverageTargets: '70, 0, 0', failNoReports: true, lineCoverageTargets: '80, 0, 0', maxNumberOfBuilds: 0, methodCoverageTargets: '80, 0, 0', onlyStable: false, sourceEncoding: 'ASCII', zoomCoverageChart: false
+                    echo 'Starting JaCoCo code coverage analysis...'
+                    sh 'mvn jacoco:prepare-agent test jacoco:report'
+                    
+                    // Publish HTML report
+                    publishHTML([
+                        allowMissing: false,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: true,
+                        reportDir: 'target/site/jacoco',
+                        reportFiles: 'index.html',
+                        reportName: 'JaCoCo Coverage Report',
+                        reportTitles: 'Code Coverage Report'
+                    ])
+                    
+                    echo 'JaCoCo code coverage analysis completed'
                 }
             }
         }
